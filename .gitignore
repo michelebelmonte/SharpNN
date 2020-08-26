@@ -3,3 +3,6 @@
 ################################################################################
 
 /CSharpNN/bin/Debug
+/CSharpNN/bin/x64/Debug
+/CSharpNN/obj
+/.vs/CSharpNN/v16/.suo
