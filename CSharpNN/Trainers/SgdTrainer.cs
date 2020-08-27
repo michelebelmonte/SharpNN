@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CSharpNN.CostFunctions;
 using CSharpNN.Infrastructure;
+using MathNet.Numerics;
 using MathNet.Numerics.LinearAlgebra.Double;
 
 namespace CSharpNN.Trainers
@@ -42,64 +43,48 @@ namespace CSharpNN.Trainers
         //    }
         //}
 
-        public static List<T> Shuffle<T>(IEnumerable<T> list, int seed = 13)
+        public void Train(Network network, List<double[]> x, List<double[]> y, double trainDataRatio)
         {
-            var rng = new Random(seed);
+            var toBeTaken = (int)(x.Count * trainDataRatio);
 
-            return list.OrderBy(x => rng.Next()).ToList();
-        }
+            var trainX = x.Take(toBeTaken).ToList();
+            var devX = DenseMatrix.OfColumnArrays(x.Skip(toBeTaken));
 
-        public void Train(Network network, List<Tuple<double[], double[]>> data, double trainDataRatio)
-        {
-            var randomData = Shuffle(data);
-
-            var toBeTaken = (int)(randomData.Count * trainDataRatio);
-
-            var trainData = randomData.Take(toBeTaken);
-            var devData = randomData.Skip(toBeTaken);
-
-            var xDev = DenseMatrix.OfColumnArrays(devData.Select(j => j.Item1).ToArray());
-            var yDev = DenseMatrix.OfColumnArrays(devData.Select(j => j.Item2).ToArray());
-
-            var histogramVector = Metrics.GetHistogramVector(DenseMatrix.OfColumnArrays(trainData.Select(k => k.Item2).ToArray()));
-
-            _logger.Log("Train data histogram");
-            _logger.Log(Environment.NewLine + StringCharts.Histogram(histogramVector.AsArray()));
-
-            histogramVector = Metrics.GetHistogramVector(yDev);
-
-            _logger.Log("Dev data histogram");
-            _logger.Log(Environment.NewLine + StringCharts.Histogram(histogramVector.AsArray()));
+            var trainY = y.Take(toBeTaken).ToList();
+            var devY = DenseMatrix.OfColumnArrays(y.Skip(toBeTaken));
 
             for (int i = 0; i < epochs; i++)
             {
                 _logger.Log($"Epoch {i:D4} started.");
-                var randomTrainData = Shuffle(trainData);
+                var randomTrainData = Shuffler.Shuffle(trainX, trainY);
 
-                var batches = SplitList(randomTrainData, minibatch).ToList();
+                var trainXBatches = SplitList(randomTrainData.Item1, minibatch).ToList();
+                var trainYBatches = SplitList(randomTrainData.Item2, minibatch).ToList();
 
-                for (int j = 0; j < batches.Count(); j++)
+                for (int j = 0; j < trainXBatches.Count(); j++)
                 {
-                    var miniList = batches[j];
-                    var x = DenseMatrix.OfColumnArrays(miniList.Select(k => k.Item1).ToArray());
-                    var y = DenseMatrix.OfColumnArrays(miniList.Select(k => k.Item2).ToArray());
+                    var xBatch = trainXBatches[j];
+                    var yBatch = trainYBatches[j];
 
-                    var inBatchPred = network.Forward(x);
+                    var xBatchMatrix = DenseMatrix.OfColumnArrays(xBatch.Select(k => k));
+                    var yBatchMatrix = DenseMatrix.OfColumnArrays(yBatch.Select(k => k));
+
+                    var inBatchPred = network.Forward(xBatchMatrix);
 
                     if (j % 500 == 0)
                     {
-                        var inBatchmse = Metrics.GetMse(y, inBatchPred);
-                        var inBatchprecision = Metrics.GetPrecision(y, inBatchPred);
-                        _logger.Log($"                   Batch: {j + 1:D4}/{batches.Count()}, Mse: {inBatchmse:F3}, Precision: {inBatchprecision:P0}");
+                        var inBatchmse = Metrics.GetMse(yBatchMatrix, inBatchPred);
+                        var inBatchprecision = Metrics.GetPrecision(yBatchMatrix, inBatchPred);
+                        _logger.Log($"                   Batch: {j + 1:D4}/{trainXBatches.Count()}, Mse: {inBatchmse:F3}, Precision: {inBatchprecision:P0}");
                     }
 
-                    Backward(network, y);
+                    Backward(network, yBatchMatrix);
                 }
 
-                var pred = network.Forward(xDev);
+                var pred = network.Forward(devX);
 
-                var mse = Metrics.GetMse(yDev, pred);
-                var precision = Metrics.GetPrecision(yDev, pred);
+                var mse = Metrics.GetMse(devY, pred);
+                var precision = Metrics.GetPrecision(devY, pred);
 
                 _logger.Log($"Epoch {i:D4} finished: Mse: {mse:F3}, Precision: {precision:P0}");
                 _logger.Log();

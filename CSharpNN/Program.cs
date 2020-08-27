@@ -11,17 +11,17 @@ namespace CSharpNN
 {
     internal class Program
     {
-        private static void DisplayTestPrecision(List<Tuple<double[], double[]>> test, Network network, ILogger logger)
+        private static void DisplayTestPrecision(IEnumerable<double[]> x, IEnumerable<double[]> y, Network network, ILogger logger)
         {
-            var x = DenseMatrix.OfColumnArrays(test.Select(j => j.Item1).ToArray());
-            var y = DenseMatrix.OfColumnArrays(test.Select(j => j.Item2).ToArray());
+            var xMatrix = DenseMatrix.OfColumnArrays(x);
+            var yMatrix = DenseMatrix.OfColumnArrays(y);
 
-            var pred = network.Forward(x);
+            var pred = network.Forward(xMatrix);
 
-            var precision = Metrics.GetPrecision(y, pred);
-            var mse = Metrics.GetMse(y, pred);
-            var confusionMatrix = Metrics.GetConfusionMatrix(y, pred);
-            var histogramVector = Metrics.GetHistogramVector(y);
+            var precision = Metrics.GetPrecision(yMatrix, pred);
+            var mse = Metrics.GetMse(yMatrix, pred);
+            var confusionMatrix = Metrics.GetConfusionMatrix(yMatrix, pred);
+            var histogramVector = Metrics.GetHistogramVector(yMatrix);
 
             logger.Log();
             logger.Log("Train data histogram:");
@@ -37,8 +37,8 @@ namespace CSharpNN
 
         private static void Main(string[] args)
         {
-            var repeat = false;
             var logger = new ConsoleLogger();
+            bool repeat;
             do
             {
                 try
@@ -46,18 +46,31 @@ namespace CSharpNN
                     Control.UseNativeMKL();
 
                     logger.Log("Loading data...");
-                    var data = MnistReader.ReadTrainingData(@"D:\Development\CSharp\CSharpNN\SharpNN\Data").ToList();
-                    var test = MnistReader.ReadTestData(@"D:\Development\CSharp\CSharpNN\SharpNN\Data").ToList();
+                    var trainData = MnistReader.ReadTrainingData(@"D:\Development\CSharp\CSharpNN\SharpNN\Data").ToList();
+                    var testData = MnistReader.ReadTestData(@"D:\Development\CSharp\CSharpNN\SharpNN\Data").ToList();
                     logger.Log("Loading data done.");
 
-                    //var network = new Network(data.First().Item1.Length, 10, new Sigmoid(), new[] { 100, 100, 100, }, new IFunction[] { new Sigmoid(), new Sigmoid(), new Sigmoid(), });
-                    var network = new Network(data.First().Item1.Length, 10, new Sigmoid(), new[] { 30 },
-                        new IFunction[] { new Sigmoid() });
+                    var trainX = trainData.Select(j => j.Item1);
+                    var trainY = trainData.Select(j => j.Item2);
+
+                    var devX = testData.Select(j => j.Item1);
+                    var devY = testData.Select(j => j.Item2);
+
+                    var randomData = Shuffler.Shuffle(trainX, trainY);
+
+                    logger.Log("Loading data done.");
+
+                    var randomTrainX = randomData.Item1;
+                    var randomTrainY = randomData.Item2;
+
+                    PrintDataHistograms(randomTrainX, randomTrainY, logger);
+
+                    var network = new Network(trainData.First().Item1.Length, new LayerOptions(10, new Sigmoid()), new[] { new LayerOptions(30, new Sigmoid()), });
                     var trainer = new SgdTrainer(30, 10, 3.0, new MseCostFunction(), logger);
 
-                    trainer.Train(network, data, 0.95);
+                    trainer.Train(network, randomTrainX, randomTrainY, 0.95);
 
-                    DisplayTestPrecision(test, network, logger);
+                    DisplayTestPrecision(devX, devY, network, logger);
                 }
                 catch (Exception e)
                 {
@@ -69,6 +82,19 @@ namespace CSharpNN
 
                 repeat = answer.KeyChar == 'r';
             } while (repeat);
+        }
+
+        private static void PrintDataHistograms(List<double[]> trainY, List<double[]> devY, ILogger logger)
+        {
+            var histogramVector = Metrics.GetHistogramVector(DenseMatrix.OfColumnArrays(trainY));
+
+            logger.Log("Train data histogram");
+            logger.Log(Environment.NewLine + StringCharts.Histogram(histogramVector.AsArray()));
+
+            histogramVector = Metrics.GetHistogramVector(DenseMatrix.OfColumnArrays(devY));
+
+            logger.Log("Dev data histogram");
+            logger.Log(Environment.NewLine + StringCharts.Histogram(histogramVector.AsArray()));
         }
     }
 }

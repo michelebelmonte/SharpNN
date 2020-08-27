@@ -1,30 +1,28 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using MathNet.Numerics.LinearAlgebra;
+﻿using MathNet.Numerics.LinearAlgebra;
+using System.Collections.Generic;
 
 namespace CSharpNN
 {
     internal class Network
     {
-        private List<Layer> _layers = new List<Layer>();
+        private readonly List<Layer> _layers = new List<Layer>();
 
-        public Network(int input, int output, IFunction lastFunction, int[] hiddenLayers, IFunction[] activationFunctions)
+        public Network(int input, LayerOptions outputLayerOptions, LayerOptions[] hiddenLayerOptions)
         {
             var currentInput = input;
 
-            for (int i = 0; i < hiddenLayers.Length; i++)
+            for (int i = 0; i < hiddenLayerOptions.Length; i++)
             {
-                var currentOutput = hiddenLayers[i];
-                var f = activationFunctions[i];
+                var hiddenLayerOption = hiddenLayerOptions[i];
 
-                var layer = new Layer(currentInput, currentOutput, f);
+                var layer = new Layer(currentInput, hiddenLayerOption.Nodes, hiddenLayerOption.ActivationFunction);
 
                 _layers.Add(layer);
 
-                currentInput = currentOutput;
+                currentInput = hiddenLayerOption.Nodes;
             }
 
-            var lastLayer = new Layer(currentInput, output, lastFunction);
+            var lastLayer = new Layer(currentInput, outputLayerOptions.Nodes, outputLayerOptions.ActivationFunction);
 
             _layers.Add(lastLayer);
         }

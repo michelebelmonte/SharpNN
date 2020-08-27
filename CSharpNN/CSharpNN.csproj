@@ -8,12 +8,13 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>CSharpNN</RootNamespace>
     <AssemblyName>CSharpNN</AssemblyName>
-    <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -77,6 +78,8 @@
     <Compile Include="CostFunctions\MseCostFunction.cs" />
     <Compile Include="Infrastructure\ConsoleLogger.cs" />
     <Compile Include="Infrastructure\ILogger.cs" />
+    <Compile Include="Infrastructure\Shuffler.cs" />
+    <Compile Include="Network\LayerOptions.cs" />
     <Compile Include="Network\Layer.cs" />
     <Compile Include="Math\Metrics.cs" />
     <Compile Include="Data\MnistReader.cs" />
