@@ -7,16 +7,15 @@ namespace CSharpNN.Infrastructure
 {
     internal static class Shuffler
     {
-        public static Tuple<List<T>, List<T>> Shuffle<T>(IEnumerable<T> x, IEnumerable<T> y, int seed = 13)
+        public static (List<T> x, List<T> y) Shuffle<T>(int? randomSeed, IEnumerable<T> x, IEnumerable<T> y)
         {
-            var rng = new Random(seed);
+            var random = randomSeed.HasValue ? new Random(randomSeed.Value) : new Random();
+            var tuples = x.Zip(y, (i, j) => (i, j)).SelectPermutation(random).ToList();
 
-            var tuples = x.Zip(y, (i, j) => new Tuple<T, T>(i, j)).SelectPermutation(rng).ToList();
+            var l0 = tuples.Select(item => item.i).ToList();
+            var l1 = tuples.Select(item => item.j).ToList();
 
-            var l0 = tuples.Select(i => i.Item1).ToList();
-            var l1 = tuples.Select(i => i.Item2).ToList();
-
-            return new Tuple<List<T>, List<T>>(l0, l1);
+            return (l0, l1);
         }
     }
 }

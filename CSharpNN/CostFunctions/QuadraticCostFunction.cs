@@ -2,7 +2,7 @@
 
 namespace CSharpNN.CostFunctions
 {
-    public class MseCostFunction : ICostFunction
+    public class QuadraticCostFunction : ICostFunction
     {
         public Matrix<double> Get(Matrix<double> a, Matrix<double> y)
         {
@@ -13,7 +13,7 @@ namespace CSharpNN.CostFunctions
 
         public Matrix<double> GetFirstDerivative(Matrix<double> a, Matrix<double> y)
         {
-            return a - y;
+            return (a - y) / a.ColumnCount;
         }
     }
 }

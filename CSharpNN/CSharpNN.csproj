@@ -74,8 +74,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ActivationFunctions\IFunction.cs" />
+    <Compile Include="CostFunctions\EntropyCostFunction.cs" />
     <Compile Include="CostFunctions\ICostFunction.cs" />
-    <Compile Include="CostFunctions\MseCostFunction.cs" />
+    <Compile Include="CostFunctions\QuadraticCostFunction.cs" />
     <Compile Include="Infrastructure\ConsoleLogger.cs" />
     <Compile Include="Infrastructure\ILogger.cs" />
     <Compile Include="Infrastructure\Shuffler.cs" />

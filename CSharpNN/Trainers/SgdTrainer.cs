@@ -1,47 +1,30 @@
-﻿using System;
+﻿using CSharpNN.CostFunctions;
+using CSharpNN.Infrastructure;
+using MathNet.Numerics.LinearAlgebra.Double;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using CSharpNN.CostFunctions;
-using CSharpNN.Infrastructure;
-using MathNet.Numerics;
-using MathNet.Numerics.LinearAlgebra.Double;
 
 namespace CSharpNN.Trainers
 {
     internal class SgdTrainer
     {
         private readonly ICostFunction _costFunction;
+        private readonly int _epochs = 30;
         private readonly ILogger _logger;
+        private readonly int _minibatch = 10;
+        private readonly int? _randomSeed;
         private readonly double _η;
-        private int epochs = 30;
 
-        private int minibatch = 10;
-
-        public SgdTrainer(int epochs, int minibatch, double η, ICostFunction costFunction, ILogger logger)
+        public SgdTrainer(int epochs, int minibatch, double η, ICostFunction costFunction, ILogger logger, int? randomSeed)
         {
-            this.epochs = epochs;
-            this.minibatch = minibatch;
+            _epochs = epochs;
+            _minibatch = minibatch;
             _η = η;
             _costFunction = costFunction;
             _logger = logger;
+            _randomSeed = randomSeed;
         }
-
-        //public static void Shuffle<T>(IList<T> list)
-        //{
-        //    var provider = new RNGCryptoServiceProvider();
-        //    var n = list.Count;
-        //    while (n > 1)
-        //    {
-        //        var box = new byte[1];
-        //        do provider.GetBytes(box);
-        //        while (!(box[0] < n * (Byte.MaxValue / n)));
-        //        var k = (box[0] % n);
-        //        n--;
-        //        var value = list[k];
-        //        list[k] = list[n];
-        //        list[n] = value;
-        //    }
-        //}
 
         public void Train(Network network, List<double[]> x, List<double[]> y, double trainDataRatio)
         {
@@ -53,15 +36,15 @@ namespace CSharpNN.Trainers
             var trainY = y.Take(toBeTaken).ToList();
             var devY = DenseMatrix.OfColumnArrays(y.Skip(toBeTaken));
 
-            for (int i = 0; i < epochs; i++)
+            for (int i = 0; i < _epochs; i++)
             {
                 _logger.Log($"Epoch {i:D4} started.");
-                var randomTrainData = Shuffler.Shuffle(trainX, trainY);
+                var randomTrainData = Shuffler.Shuffle(_randomSeed, trainX, trainY);
 
-                var trainXBatches = SplitList(randomTrainData.Item1, minibatch).ToList();
-                var trainYBatches = SplitList(randomTrainData.Item2, minibatch).ToList();
+                var trainXBatches = SplitList(randomTrainData.Item1, _minibatch).ToList();
+                var trainYBatches = SplitList(randomTrainData.Item2, _minibatch).ToList();
 
-                for (int j = 0; j < trainXBatches.Count(); j++)
+                for (int j = 0; j < trainXBatches.Count; j++)
                 {
                     var xBatch = trainXBatches[j];
                     var yBatch = trainYBatches[j];
@@ -71,11 +54,11 @@ namespace CSharpNN.Trainers
 
                     var inBatchPred = network.Forward(xBatchMatrix);
 
-                    if (j % 500 == 0)
+                    if (j % 500 == 0 || j + 1 == trainXBatches.Count)
                     {
-                        var inBatchmse = Metrics.GetMse(yBatchMatrix, inBatchPred);
+                        var inBatchmse = _costFunction.Get(yBatchMatrix, inBatchPred).RowSums().Sum();
                         var inBatchprecision = Metrics.GetPrecision(yBatchMatrix, inBatchPred);
-                        _logger.Log($"                   Batch: {j + 1:D4}/{trainXBatches.Count()}, Mse: {inBatchmse:F3}, Precision: {inBatchprecision:P0}");
+                        _logger.Log($"                   Batch: {j + 1:D4}/{trainXBatches.Count()}, #Samples: {xBatch.Count} Mse: {inBatchmse:F3}, Precision: {inBatchprecision:P0}");
                     }
 
                     Backward(network, yBatchMatrix);
@@ -83,7 +66,7 @@ namespace CSharpNN.Trainers
 
                 var pred = network.Forward(devX);
 
-                var mse = Metrics.GetMse(devY, pred);
+                var mse = _costFunction.Get(devY, pred).RowSums().Sum();
                 var precision = Metrics.GetPrecision(devY, pred);
 
                 _logger.Log($"Epoch {i:D4} finished: Mse: {mse:F3}, Precision: {precision:P0}");
@@ -119,8 +102,8 @@ namespace CSharpNN.Trainers
 
                 var δ = gradient.PointwiseMultiply(sp);
 
-                var δ_biases = δ.RowSums() / δ.ColumnCount;
-                var δ_weights = (δ * layer.Input.Transpose()) / δ.ColumnCount;
+                var δ_biases = δ.RowSums();
+                var δ_weights = (δ * layer.Input.Transpose());
 
                 gradient = layer.Weights.Transpose() * δ;
 

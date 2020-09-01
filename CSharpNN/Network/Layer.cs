@@ -1,6 +1,7 @@
 ﻿using MathNet.Numerics.Distributions;
 using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.LinearAlgebra.Double;
+using System;
 using System.Linq;
 
 namespace CSharpNN
@@ -14,10 +15,13 @@ namespace CSharpNN
         private Matrix<double> _weights;
         private Matrix<double> _z;
 
-        public Layer(int input, int output, IFunction f)
+        public Layer(int input, int output, IFunction f, int? randomSeed)
         {
             _f = f;
-            IContinuousDistribution distribution = new Normal();
+
+            var randomSource = randomSeed.HasValue ? new Random(randomSeed.Value) : new Random();
+
+            IContinuousDistribution distribution = new Normal(randomSource);
 
             _weights = DenseMatrix.CreateRandom(output, input, distribution);
 
@@ -46,7 +50,7 @@ namespace CSharpNN
         public Matrix<double> Forward(Matrix<double> input)
         {
             _input = input;
-            var m = _weights * input;
+            var m = _weights * _input;
 
             var biasMatrix = DenseMatrix.Build.DenseOfColumnVectors(Enumerable.Repeat(_biases, m.ColumnCount));
 

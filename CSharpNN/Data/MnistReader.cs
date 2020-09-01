@@ -19,7 +19,7 @@ namespace CSharpNN
             return BitConverter.ToInt32(bytes, 0);
         }
 
-        public static IEnumerable<Tuple<double[], double[]>> ReadTestData(string folder)
+        public static IEnumerable<(double[] x, double[] label)> ReadTestData(string folder)
         {
             foreach (var item in Read(
                 Path.Combine(folder, TestImages),
@@ -29,7 +29,7 @@ namespace CSharpNN
             }
         }
 
-        public static IEnumerable<Tuple<double[], double[]>> ReadTrainingData(string folder)
+        public static IEnumerable<(double[] x, double[] label)> ReadTrainingData(string folder)
         {
             foreach (var item in Read(
                 Path.Combine(folder, TrainImages),
@@ -39,7 +39,7 @@ namespace CSharpNN
             }
         }
 
-        private static IEnumerable<Tuple<double[], double[]>> Read(string imagesPath, string labelsPath)
+        private static IEnumerable<(double[] x, double[] label)> Read(string imagesPath, string labelsPath)
         {
             BinaryReader labels = new BinaryReader(new FileStream(labelsPath, FileMode.Open));
             BinaryReader images = new BinaryReader(new FileStream(imagesPath, FileMode.Open));
@@ -63,7 +63,7 @@ namespace CSharpNN
 
                 label[index] = 1.0;
 
-                yield return new Tuple<double[], double[]>(bytes, label);
+                yield return (x: bytes, label: label);
             }
         }
     }

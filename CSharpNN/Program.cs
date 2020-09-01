@@ -5,6 +5,7 @@ using MathNet.Numerics;
 using MathNet.Numerics.LinearAlgebra.Double;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 namespace CSharpNN
@@ -35,56 +36,81 @@ namespace CSharpNN
             logger.Log(Environment.NewLine + confusionMatrix.ToMatrixString());
         }
 
+        private static string GetDataFolder(string[] args)
+        {
+            if (args.Length != 1) return string.Empty;
+
+            var folder = args[0];
+
+            if (!Directory.Exists(folder)) return string.Empty;
+
+            return folder;
+        }
+
+        private static (IEnumerable<double[]> trainX, IEnumerable<double[]> trainY, IEnumerable<double[]> devX, IEnumerable<double[]> devY) LoadData(string folder, ConsoleLogger logger)
+        {
+            logger.Log("Loading data...");
+            var trainData = MnistReader.ReadTrainingData(folder).ToList();
+            var testData = MnistReader.ReadTestData(folder).ToList();
+            logger.Log("Loading data done.");
+
+            var trainX = trainData.Select(j => j.x);
+            var trainY = trainData.Select(j => j.label);
+
+            var devX = testData.Select(j => j.x);
+            var devY = testData.Select(j => j.label);
+
+            return (trainX, trainY, devX, devY);
+        }
+
         private static void Main(string[] args)
         {
             var logger = new ConsoleLogger();
-            bool repeat;
-            do
+
+            try
             {
-                try
+                var dataFolder = GetDataFolder(args);
+
+                if (string.IsNullOrEmpty(dataFolder)) return;
+
+                Control.UseNativeMKL();
+
+                var (trainX, trainY, devX, devY) = LoadData(dataFolder, logger);
+
+                bool repeat;
+                do
                 {
-                    Control.UseNativeMKL();
+                    var randomSeed = 13;
+                    var network = Network.Build(28 * 28, new LayerOptions(10, new Sigmoid()), new[]
+                    {
+                        new LayerOptions(30, new Sigmoid()),
+                        new LayerOptions(30, new Sigmoid()),
+                        new LayerOptions(30, new Sigmoid()),
+                    }, randomSeed);
 
-                    logger.Log("Loading data...");
-                    var trainData = MnistReader.ReadTrainingData(@"D:\Development\CSharp\CSharpNN\SharpNN\Data").ToList();
-                    var testData = MnistReader.ReadTestData(@"D:\Development\CSharp\CSharpNN\SharpNN\Data").ToList();
-                    logger.Log("Loading data done.");
+                    var trainer = new SgdTrainer(30, 10, 3.0, new QuadraticCostFunction(), logger, randomSeed);
 
-                    var trainX = trainData.Select(j => j.Item1);
-                    var trainY = trainData.Select(j => j.Item2);
+                    var (randomTrainX, randomTrainY) = Shuffler.Shuffle(randomSeed, trainX, trainY);
 
-                    var devX = testData.Select(j => j.Item1);
-                    var devY = testData.Select(j => j.Item2);
-
-                    var randomData = Shuffler.Shuffle(trainX, trainY);
-
-                    logger.Log("Loading data done.");
-
-                    var randomTrainX = randomData.Item1;
-                    var randomTrainY = randomData.Item2;
-
-                    PrintDataHistograms(randomTrainX, randomTrainY, logger);
-
-                    var network = new Network(trainData.First().Item1.Length, new LayerOptions(10, new Sigmoid()), new[] { new LayerOptions(30, new Sigmoid()), });
-                    var trainer = new SgdTrainer(30, 10, 3.0, new MseCostFunction(), logger);
+                    PrintDataHistograms(trainY, devY, logger);
 
                     trainer.Train(network, randomTrainX, randomTrainY, 0.95);
 
                     DisplayTestPrecision(devX, devY, network, logger);
-                }
-                catch (Exception e)
-                {
-                    logger.Log(e.Message);
-                }
 
-                logger.Log("Press key to exit. \"r\" to repeat...");
-                var answer = Console.ReadKey();
+                    logger.Log("Press key to exit. \"r\" to repeat...");
+                    var answer = Console.ReadKey();
 
-                repeat = answer.KeyChar == 'r';
-            } while (repeat);
+                    repeat = answer.KeyChar == 'r';
+                } while (repeat);
+            }
+            catch (Exception e)
+            {
+                logger.Log(e.Message);
+            }
         }
 
-        private static void PrintDataHistograms(List<double[]> trainY, List<double[]> devY, ILogger logger)
+        private static void PrintDataHistograms(IEnumerable<double[]> trainY, IEnumerable<double[]> devY, ILogger logger)
         {
             var histogramVector = Metrics.GetHistogramVector(DenseMatrix.OfColumnArrays(trainY));
 
