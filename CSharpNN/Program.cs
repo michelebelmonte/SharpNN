@@ -7,12 +7,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using CSharpNN.Network;
 
 namespace CSharpNN
 {
     internal class Program
     {
-        private static void DisplayTestPrecision(IEnumerable<double[]> x, IEnumerable<double[]> y, Network network, ILogger logger)
+        private static void DisplayTestPrecision(IEnumerable<double[]> x, IEnumerable<double[]> y, Network.Network network, ILogger logger)
         {
             var xMatrix = DenseMatrix.OfColumnArrays(x);
             var yMatrix = DenseMatrix.OfColumnArrays(y);
@@ -81,11 +82,11 @@ namespace CSharpNN
                 do
                 {
                     var randomSeed = 13;
-                    var network = Network.Build(28 * 28, new LayerOptions(10, new Sigmoid()), new[]
+                    var network = NetworkBuilder.Build(28 * 28, new LayerOptions(10, new Sigmoid()), new[]
                     {
                         new LayerOptions(30, new Sigmoid()),
-                        new LayerOptions(30, new Sigmoid()),
-                        new LayerOptions(30, new Sigmoid()),
+                        //new LayerOptions(30, new Sigmoid()),
+                        //new LayerOptions(30, new Sigmoid()),
                     }, randomSeed);
 
                     var trainer = new SgdTrainer(30, 10, 3.0, new QuadraticCostFunction(), logger, randomSeed);

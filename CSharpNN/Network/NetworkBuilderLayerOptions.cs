@@ -2,13 +2,13 @@
 {
     internal class LayerOptions
     {
-        public LayerOptions(int nodes, IFunction activationFunction)
+        public LayerOptions(int outputNodes, IFunction activationFunction)
         {
-            Nodes = nodes;
+            OutputNodes = outputNodes;
             ActivationFunction = activationFunction;
         }
 
         public IFunction ActivationFunction { get; }
-        public int Nodes { get; }
+        public int OutputNodes { get; }
     }
 }

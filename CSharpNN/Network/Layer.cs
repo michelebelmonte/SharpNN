@@ -21,7 +21,7 @@ namespace CSharpNN
 
             var randomSource = randomSeed.HasValue ? new Random(randomSeed.Value) : new Random();
 
-            IContinuousDistribution distribution = new Normal(randomSource);
+            IContinuousDistribution distribution = new Normal(0, 1.0 / Math.Sqrt(input), randomSource);
 
             _weights = DenseMatrix.CreateRandom(output, input, distribution);
 

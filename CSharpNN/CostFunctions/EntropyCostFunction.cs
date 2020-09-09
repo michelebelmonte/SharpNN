@@ -2,7 +2,7 @@
 
 namespace CSharpNN.CostFunctions
 {
-    public class EntropyCostFunction : ICostFunction
+    public class CrossEntropyCostFunction : ICostFunction
     {
         private const double epsilon = 0.0000000001;
 
@@ -12,15 +12,15 @@ namespace CSharpNN.CostFunctions
             var a_1_epsilon = 1.0 - a + epsilon;
 
             //-(ylna+(1−y)ln(1−a))
-            var result = -y.PointwiseMultiply(a_epsilon.PointwiseLog())
-                         - (1.0 - y).PointwiseMultiply(a_1_epsilon.PointwiseLog());
+            var result = -(y.PointwiseMultiply(a_epsilon.PointwiseLog())
+                         + (1.0 - y).PointwiseMultiply(a_1_epsilon.PointwiseLog()));
 
             return result / a.ColumnCount;
         }
 
         public Matrix<double> GetFirstDerivative(Matrix<double> a, Matrix<double> y)
         {
-            var result = -y.PointwiseDivide(a + epsilon) - (1.0 - y).PointwiseDivide(1.0 - a + epsilon);
+            var result = -(y.PointwiseDivide(a + epsilon) - (1.0 - y).PointwiseDivide(1.0 - a + epsilon)) / a.ColumnCount;
 
             return result;
         }

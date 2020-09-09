@@ -80,11 +80,12 @@
     <Compile Include="Infrastructure\ConsoleLogger.cs" />
     <Compile Include="Infrastructure\ILogger.cs" />
     <Compile Include="Infrastructure\Shuffler.cs" />
-    <Compile Include="Network\LayerOptions.cs" />
+    <Compile Include="Network\NetworkBuilderLayerOptions.cs" />
     <Compile Include="Network\Layer.cs" />
     <Compile Include="Math\Metrics.cs" />
     <Compile Include="Data\MnistReader.cs" />
     <Compile Include="Network\Network.cs" />
+    <Compile Include="Network\NetworkBuilder.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ActivationFunctions\Relu.cs" />

@@ -26,7 +26,7 @@ namespace CSharpNN.Trainers
             _randomSeed = randomSeed;
         }
 
-        public void Train(Network network, List<double[]> x, List<double[]> y, double trainDataRatio)
+        public void Train(Network.Network network, List<double[]> x, List<double[]> y, double trainDataRatio)
         {
             var toBeTaken = (int)(x.Count * trainDataRatio);
 
@@ -39,18 +39,18 @@ namespace CSharpNN.Trainers
             for (int i = 0; i < _epochs; i++)
             {
                 _logger.Log($"Epoch {i:D4} started.");
-                var randomTrainData = Shuffler.Shuffle(_randomSeed, trainX, trainY);
+                var (randomTrainX, randomTrainY) = Shuffler.Shuffle(_randomSeed, trainX, trainY);
 
-                var trainXBatches = SplitList(randomTrainData.Item1, _minibatch).ToList();
-                var trainYBatches = SplitList(randomTrainData.Item2, _minibatch).ToList();
+                var trainXBatches = SplitList(randomTrainX, _minibatch).ToList();
+                var trainYBatches = SplitList(randomTrainY, _minibatch).ToList();
 
-                for (int j = 0; j < trainXBatches.Count; j++)
+                for (var j = 0; j < trainXBatches.Count; j++)
                 {
                     var xBatch = trainXBatches[j];
                     var yBatch = trainYBatches[j];
 
-                    var xBatchMatrix = DenseMatrix.OfColumnArrays(xBatch.Select(k => k));
-                    var yBatchMatrix = DenseMatrix.OfColumnArrays(yBatch.Select(k => k));
+                    var xBatchMatrix = DenseMatrix.OfColumnArrays(xBatch);
+                    var yBatchMatrix = DenseMatrix.OfColumnArrays(yBatch);
 
                     var inBatchPred = network.Forward(xBatchMatrix);
 
@@ -58,7 +58,7 @@ namespace CSharpNN.Trainers
                     {
                         var inBatchmse = _costFunction.Get(yBatchMatrix, inBatchPred).RowSums().Sum();
                         var inBatchprecision = Metrics.GetPrecision(yBatchMatrix, inBatchPred);
-                        _logger.Log($"                   Batch: {j + 1:D4}/{trainXBatches.Count()}, #Samples: {xBatch.Count} Mse: {inBatchmse:F3}, Precision: {inBatchprecision:P0}");
+                        _logger.Log($"                   Batch: {j + 1:D4}/{trainXBatches.Count()}, #Samples: {xBatch.Count} Cost: {inBatchmse:F3}, Precision: {inBatchprecision:P0}");
                     }
 
                     Backward(network, yBatchMatrix);
@@ -69,12 +69,12 @@ namespace CSharpNN.Trainers
                 var mse = _costFunction.Get(devY, pred).RowSums().Sum();
                 var precision = Metrics.GetPrecision(devY, pred);
 
-                _logger.Log($"Epoch {i:D4} finished: Mse: {mse:F3}, Precision: {precision:P0}");
+                _logger.Log($"Epoch {i:D4} finished: Cost: {mse:F3}, Precision: {precision:P0}");
                 _logger.Log();
             }
         }
 
-        private static List<Layer> GetBackwardLayers(Network network)
+        private static List<Layer> GetBackwardLayers(Network.Network network)
         {
             var backwardLayers = network.Layers.ToList();
 
@@ -90,7 +90,7 @@ namespace CSharpNN.Trainers
             }
         }
 
-        private void Backward(Network network, DenseMatrix y)
+        private void Backward(Network.Network network, DenseMatrix y)
         {
             var backwardLayers = GetBackwardLayers(network);
 
